@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SDM 101 — Modelado de Distribución de Especies en R</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,600;1,300&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #f0e5ed;
+      --surface:   #f0e5ed;
+      --border:    #532e69;
+      --green:     #a13b95;
+      --green-dim: #b2788f;
+      --text:      #532e69;
+      --muted:     #a472b5;
+      --white:     #000000;
+      --mono:      'IBM Plex Mono', monospace;
+      --sans:      'IBM Plex Sans', sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.7;
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ── */
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 3rem 2rem 2.5rem;
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    .header-top {
+      display: flex;
+      align-items: center;
+      gap: 1.2rem;
+      margin-bottom: 1.6rem;
+    }
+
+    .logo {
+      height: 52px;
+      width: auto;
+      flex-shrink: 0;
+    }
+
+    .eyebrow {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.18em;
+      color: var(--green);
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+    }
+
+    h1 {
+      font-family: var(--mono);
+      font-size: clamp(1.6rem, 4vw, 2.4rem);
+      font-weight: 600;
+      color: var(--white);
+      line-height: 1.2;
+      margin-bottom: 1rem;
+    }
+
+    h1 span { color: var(--green); }
+
+    .subtitle {
+      font-size: 1rem;
+      font-weight: 300;
+      color: var(--muted);
+      max-width: 540px;
+      margin-bottom: 1.8rem;
+    }
+
+    .meta {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .meta a {
+      color: var(--green);
+      text-decoration: none;
+      border-bottom: 1px solid var(--green-dim);
+    }
+
+    .meta a:hover { color: var(--white); border-color: var(--border); }
+
+    /* ── MAIN ── */
+    main {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 2rem 4rem;
+    }
+
+    /* ── INTRO TEXT ── */
+    .intro {
+      padding: 2.5rem 0 2rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.97rem;
+      color: var(--text);
+      max-width: 640px;
+    }
+
+    .intro em {
+      color: var(--white);
+      font-style: italic;
+    }
+
+    /* ── STEPS ── */
+    .steps-label {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.15em;
+      color: var(--muted);
+      text-transform: uppercase;
+      padding-top: 2.5rem;
+      margin-bottom: 1.2rem;
+    }
+
+    .steps { display: flex; flex-direction: column; }
+
+    .step {
+      display: grid;
+      grid-template-columns: 5rem 1fr auto;
+      align-items: start;
+      gap: 0 1.5rem;
+      padding: 1.4rem 0;
+      border-bottom: 1px solid var(--border);
+      color: inherit;
+      transition: background 0.15s;
+    }
+
+    .step:hover { background: #e8d5e6; margin: 0 -1rem; padding: 1.4rem 1rem; }
+
+    .step-num {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--green);
+      padding-top: 0.2rem;
+      letter-spacing: 0.05em;
+    }
+
+    .step-title {
+      font-size: 0.97rem;
+      font-weight: 600;
+      color: var(--white);
+      margin-bottom: 0.3rem;
+    }
+
+    .step-desc {
+      font-size: 0.85rem;
+      color: var(--muted);
+      font-weight: 300;
+    }
+
+    .step-links {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.4rem;
+      padding-top: 0.1rem;
+      min-width: 100px;
+    }
+
+    .btn {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.05em;
+      padding: 0.25rem 0.7rem;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      color: var(--muted);
+      text-decoration: none;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+      white-space: nowrap;
+    }
+
+    .btn:hover { border-color: var(--green); color: var(--green); background: #e8d5e6; }
+
+    .btn.primary {
+      border-color: var(--green);
+      color: var(--green);
+    }
+
+    .btn.primary:hover { background: var(--green); color: var(--bg); }
+
+    .btn.disabled {
+      opacity: 0.35;
+      pointer-events: none;
+    }
+
+    /* ── REQUIREMENTS ── */
+    .req-section { padding-top: 2.5rem; }
+
+    .req-section h2 {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.15em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 1.2rem;
+    }
+
+    .req-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+    }
+
+    .req-card {
+      background: var(--bg);
+      padding: 1.2rem 1.4rem;
+    }
+
+    .req-card h3 {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--green);
+      margin-bottom: 0.6rem;
+      font-weight: 400;
+    }
+
+    .req-card ul {
+      list-style: none;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .req-card ul li::before {
+      content: '— ';
+      color: var(--green-dim);
+    }
+
+    code {
+      font-family: var(--mono);
+      font-size: 0.82em;
+      color: var(--green);
+      background: #e4d0e1;
+      padding: 0.1em 0.35em;
+      border-radius: 2px;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 1.5rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+
+    footer a { color: var(--green); text-decoration: none; }
+    footer a:hover { color: var(--white); }
+
+    /* ── MOBILE ── */
+    @media (max-width: 600px) {
+      .header-top { flex-direction: column; align-items: flex-start; gap: 0.8rem; }
+      .step { grid-template-columns: 3.5rem 1fr; grid-template-rows: auto auto; }
+      .step-links {
+        grid-column: 2;
+        flex-direction: row;
+        justify-content: flex-start;
+        margin-top: 0.5rem;
+      }
+      .req-grid { grid-template-columns: 1fr; }
+      footer { flex-direction: column; gap: 0.5rem; text-align: center; }
+    }
+
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <img src="../images/logo.png" alt="Logo" class="logo">
+    <div>
+      <p class="eyebrow">SDM_101 &nbsp;·&nbsp; Curso en R</p>
+      <h1>Modelado de <span>Distribución</span><br>de Especies</h1>
+    </div>
+  </div>
+  <p class="subtitle">
+    De los registros de presencia en GBIF a un mapa de idoneidad con MaxEnt,
+    paso a paso y con código reproducible.
+  </p>
+  <p class="meta">
+    Dra. Viridiana Lizardo &nbsp;·&nbsp; 2024 &nbsp;·&nbsp;
+    <a href="https://github.com/tu-usuario/SDM_101">GitHub ↗</a>
+  </p>
+</header>
+
+<main>
+
+  <div class="intro">
+    Los tutoriales usan <em>Didelphis virginiana</em> (tlacuache norteño) como especie de ejemplo,
+    pero el flujo completo es transferible a cualquier especie con registros en GBIF.
+    Cada paso genera los archivos que necesita el siguiente.
+  </div>
+
+  <p class="steps-label">Tutoriales</p>
+
+  <div class="steps">
+
+    <div class="step">
+      <span class="step-num">INTRO</span>
+      <div class="step-body">
+        <div class="step-title">Conceptos y flujo de trabajo</div>
+        <div class="step-desc">Nicho ecológico, tipos de modelos, estructura del curso.</div>
+      </div>
+      <div class="step-links">
+        <a class="btn primary" href="intro.pdf">PDF</a>
+        <a class="btn" href="intro.pptx">PPTX</a>
+      </div>
+    </div>
+
+    <div class="step">
+      <span class="step-num">PASO 01</span>
+      <div class="step-body">
+        <div class="step-title">Descarga, limpieza y preparación de datos</div>
+        <div class="step-desc">rgbif, CoordinateCleaner, separación training / testing.</div>
+      </div>
+      <div class="step-links">
+        <a class="btn primary" href="paso01.nb.html">Tutorial</a>
+        <a class="btn" href="slides-paso-01.html">Slides</a>
+      </div>
+    </div>
+
+    <div class="step">
+      <span class="step-num">PASO 02</span>
+      <div class="step-body">
+        <div class="step-title">Selección de variables y recorte de capas</div>
+        <div class="step-desc">WorldClim, terra, multicolinearidad, área de entrenamiento.</div>
+      </div>
+      <div class="step-links">
+        <a class="btn primary" href="paso02.nb.html">Tutorial</a>
+        <a class="btn disabled" href="#">Slides próx.</a>
+      </div>
+    </div>
+
+    <div class="step">
+      <span class="step-num">PASO 03</span>
+      <div class="step-body">
+        <div class="step-title">Modelado con MaxEnt usando SDMTune</div>
+        <div class="step-desc">Ajuste, regularización, evaluación (AUC), mapas de idoneidad.</div>
+      </div>
+      <div class="step-links">
+        <a class="btn primary" href="paso03.nb.html">Tutorial</a>
+        <a class="btn" href="slides-paso-03.html">Slides</a>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="req-section">
+    <h2>Requisitos</h2>
+    <div class="req-grid">
+      <div class="req-card">
+        <h3>Software</h3>
+        <ul>
+          <li>R ≥ 4.1</li>
+          <li>RStudio (recomendado)</li>
+          <li>Cuenta gratuita en GBIF</li>
+        </ul>
+      </div>
+      <div class="req-card">
+        <h3>Paquetes principales</h3>
+        <ul>
+          <li><code>tidyverse</code></li>
+          <li><code>sf</code> · <code>terra</code> · <code>tmap</code></li>
+          <li><code>rgbif</code> · <code>CoordinateCleaner</code></li>
+          <li><code>SDMtune</code></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <span>Dra. Viridiana Lizardo · MIT License</span>
+  <a href="https://github.com/tu-usuario/SDM_101">Ver repositorio en GitHub ↗</a>
+</footer>
+
+</body>
+</html>
