@@ -1,0 +1,318 @@
+---
+title: "Descarga, limpieza y preparación de datos para SDM"
+subtitle: "Paso 1"
+author: "Dra. Viridiana Lizardo"
+output:
+  ioslides_presentation:
+    css: 'scrollable_slides.css'
+    highlight: pygments
+    widescreen: TRUE
+    transition: faster
+    logo: images/logo.png
+    df-print: kable
+---
+# Introducción.
+
+
+## El objetivo de este documento es:
+
+-   Dar un ejemplo reproducible que puedan modificar a su interés.
+
+-   Producir los archivos de registros que se usarán para modelar una especie:
+
+    -   training.csv
+
+    -   testing.csv
+
+-   Mapa descriptivo de lo anterior
+
+# Paquetes requeridos {data-background="#700000"}
+
+## Manejo de datos
+
+### Tidyverse
+
+Colección de paquetes de R diseñados para la ciencia de datos. 
+
+Es requerimiento **obligado** para poder reproducir este script, ya que se usa y abusa de el uso de las pipes (`%>%`), las cuales enfatizan una secuencia de acciones.
+
+Más info aquí: [Tidyverse](https://www.tidyverse.org/)
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+
+```
+
+[![Flujo de trabajo.](https://d33wubrfki0l68.cloudfront.net/571b056757d68e6df81a3e3853f54d3c76ad6efc/32d37/diagrams/data-science.png)](http://r4ds.had.co.nz/introduction.html)
+
+Para una clase sobre esta paquetería pueden ir a [esta clase en youtube](https://www.youtube.com/watch?v=PMwpuONWkYQ "Meetup Julio 2022: Introducción a Tidyverse") o revisar [las diapositivas](https://rladiescuerna.github.io/meetup_julio_2022/presentacion.html#1) de la misma.
+
+## Sistemas de Información Geográfica
+
+### Para datos *vectoriales*
+Se usa el paquete `sf`. Este permite leer, manipular y modificar datos geográficos en formato vectorial, utilizando el estándar Simple Features. Es una herramienta esencial para trabajar con datos geográficos en R.
+
+Más info aquí: [sf](https://github.com/r-spatial/sf), [Geocomputation with R](https://r.geocompx.org/)
+
+```{r}
+library(sf)
+```
+
+##
+
+### Hacer mapas
+
+Los mapas los haremos con `tmap` y su complemento `tmaptools`. Diseñados para la creación de mapas temáticos con una gramática similar a ggplot.
+
+Más info aquí: [tmap](https://r-tmap.github.io/tmap/)
+
+```{r}
+library(tmap)
+library(tmaptools)
+```
+
+## Obtención de registros de presencia
+
+El paquete `rgbif` permite interactuar con la base de datos de la Global Biodiversity Information Facility (GBIF) para descargar y procesar datos de biodiversidad. Así como para obtener datos taxonómicos y estandarizar nombres científicos.
+
+Más info aquí: [rgbif](https://docs.ropensci.org/rgbif/index.html)
+
+
+```{r}
+library(rgbif)
+```
+
+## Pre-procesado de datos
+
+### Registros
+
+El paquete `CoordinateCleaner` ayuda a identificar y limpiar errores en los datos de coordenadas espaciales. Lo hace de forma automatizada y basándose en la estructura de datos de GBIF.
+
+Más info aquí: [CoordinateCleaner](https://ropensci.github.io/CoordinateCleaner/)
+
+```{r}
+library(CoordinateCleaner)
+```
+
+
+## Puntos de registro obtenidos de GBIF de *D. virginiana*
+
+```{r echo=FALSE}
+knitr::include_graphics("./images/opossum.jpg")
+```
+
+
+# Credenciales de GBIF {data-background="#700000"}
+
+Necesitan crear cuenta en GBIF y tener a la mano los siguientes datos: - Usuario - contraseña - email
+
+## Guardar **PERMANENTEMENTE** en el .Renviron. Hagan esto en su computadora personal.
+
+```{r eval=FALSE}
+install.packages("usethis")
+usethis::edit_r_environ()
+
+GBIF_USER= "your_gbif_username"
+GBIF_PWD= "your_gbif_password"
+GBIF_EMAIL= "your_email@example.com"
+
+Sys.getenv("GBIF_USER")
+```
+
+## Si no es su computadora, guarden las credenciales **temporalmente**.
+
+```{r eval=FALSE}
+# Set your GBIF credentials
+gbif_user <- "your_gbif_username"
+gbif_pwd <- "your_gbif_password"
+gbif_email <- "your_email@example.com"
+```
+
+## Obtener identificador único de la especie
+
+
+Nos interesa verificar que el nombre sea válido ante la GBIF. Lo que vamos a extraer es el código único de la especie (`speciesKey`)
+
+```{r}
+sp_info <- rgbif::name_backbone('Didelphis virginiana')
+
+glimpse(sp_info) # Función de tidyverse
+
+species_key <- sp_info$speciesKey
+```
+
+## Descarga de datos
+
+Se utiliza la función `occ_download`, deben tener sus credenciales guardadas. Al hacer esto se especifica claramente el origen de datos y se genera un DOI de la descarga que se citará en cualquier publicación resultante de esto.
+
+```{r}
+gbif_download <- occ_download(
+  pred("taxonKey", species_key),
+  pred("hasCoordinate", TRUE), # con coordenadas
+  pred("hasGeospatialIssue", FALSE), # sin problemas espaciales
+  pred_gte("year", 1950),  # a partir de 1950
+  pred_in("basisOfRecord",'PRESERVED_SPECIMEN'), # tipo de registro
+  # Quitar registros "no nativos"
+  pred_or(pred_not(
+    pred("establishmentMeans","MANAGED")),
+    pred_not(pred_notnull("establishmentMeans"))),
+  pred_or(pred_not(pred("establishmentMeans","INTRODUCED")),
+          pred_not(pred_notnull("establishmentMeans"))),
+  pred_or(pred_not(pred("establishmentMeans","INVASIVE")),
+          pred_not(pred_notnull("establishmentMeans"))),
+  pred_or(pred_not(pred("establishmentMeans","NATURALISED")),
+          pred_not(pred_notnull("establishmentMeans"))),
+  format = "SIMPLE_CSV"
+  
+  # solo agregar si no esta en .Renviron
+  # user = gbif_user, 
+  # pwd = gbif_pwd,
+  #email = gbif_email
+)
+
+# Esperar a que esté lista (pueden ser hasta 30 minutos)
+occ_download_wait(gbif_download)
+```
+
+## Cargar datos
+**Para descargar la primera vez**
+
+```{r eval=FALSE}
+gbif_result <- occ_download_get(gbif_download) %>%
+  occ_download_import()
+```
+
+**Si ya lo descargaron y usando la _key_ única de descarga**
+```{r}
+gbif_result <- occ_download_import(key = '0044111-260519110011954')
+```
+
+## Revisar descarga
+```{r}
+glimpse(gbif_result)
+```
+
+
+
+## Referencia de la descarga
+
+```{r}
+occ_download_meta(key = '0011251-250402121839773') %>% gbif_citation()
+```
+
+## Limpiar los datos con `CoordinateCleaner`
+
+```{r}
+gbif_clean <- gbif_result %>% 
+  cc_dupl() %>% # duplicados
+  cc_cap()  %>% # capitales
+  cc_cen() %>% # centroides de países
+  cc_equ() %>% # coordenadas iguales (ejemplo: -1,-1)
+  cc_sea() %>% # en el mar
+  cc_val() %>% # coordenadas inválidas 
+  cc_zero() 
+  
+```
+
+## Resultado
+
+```{r}
+glimpse(gbif_clean)
+```
+
+## Visualizar los datos
+
+```{r}
+#tmap_mode('plot') # imagen estática
+ tmap_mode('view') #interactiva
+# convertir a objeto espacial
+m1 <- st_as_sf(gbif_clean, coords = c('decimalLongitude', 'decimalLatitude'), 
+         crs = 4326)
+  # Plotear
+  qtm(m1)
+
+```
+
+## Limpiar datos atípicos de Colombia y Bolivia
+
+```{r}
+gbif_cleaner <- gbif_clean %>% filter(!countryCode %in% c('CO', 'BO'))
+
+occ_sf <- st_as_sf(gbif_cleaner, coords = c('decimalLongitude', 'decimalLatitude'), 
+         crs = 4326)
+
+
+qtm(occ_sf)
+```
+
+## Separar en Training (80%) y Testing (20%)
+
+Además, eliminamos todas las columnas con información que no es necesaria para el modelo y conservamos únicamente tres: especie, longitud y latitud.
+
+## Training data
+
+```{r}
+set.seed(123) # para reproducibilidad
+
+training <- gbif_cleaner %>%
+  select(species, decimalLongitude, decimalLatitude) %>% #seleccionar columnas
+  rownames_to_column('ID') %>% # agregar ID para cada punto
+  sample_frac(0.80) # porcentaje de training
+  
+training
+```
+
+## Testing data
+
+```{r}
+testing <- gbif_cleaner %>%
+  select(species, decimalLongitude, decimalLatitude) %>% #seleccionar columnas
+  rownames_to_column('ID') %>% # agregar ID para cada punto
+  filter(!ID %in% training$ID)
+  
+testing
+```
+
+## Guardar datos
+
+En la carpeta `data`
+
+```{r}
+training %>% select(-ID) %>% #quitar columna ID
+  write.csv('data/training.csv', row.names = F) # Guardar en sin números de fila
+
+testing %>% select(-ID) %>% write.csv('data/testing.csv', row.names = F)
+```
+
+
+## Mapa
+
+```{r}
+data('World')
+
+sf_training <- st_as_sf(training, coords = c('decimalLongitude', 'decimalLatitude'), 
+         crs = 4326) %>% mutate(type = 'training')
+
+sf_records <- st_as_sf(testing, coords = c('decimalLongitude', 'decimalLatitude'), 
+         crs = 4326)%>% mutate(type = 'testing') %>% bind_rows(sf_training)
+```
+
+
+
+##
+
+```{r}
+tm_shape(World, bbox = st_bbox(sf_records)) +tm_fill(   ) +
+tm_shape(sf_records)+ 
+  tm_dots( col= 'type', palette = 'Dark2', alpha = 0.5) 
+  
+
+```
+
+# ¡Gracias!
+
+::: columns-2
+![mail](images/002-malware-02.png)
+
+Contacto: [lizardo.viridiana\@gmail.com](mailto:lizardo.viridiana@gmail.com){.email}
+:::

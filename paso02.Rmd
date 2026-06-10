@@ -1,0 +1,185 @@
+---
+title: "Paso 2. Selección de variables y recorte de capas"
+author: "M.en C. Viridiana Lizardo"
+date: "6 de agosto de 2024"
+output: 
+  html_notebook:
+    toc: TRUE
+    highlight: pygments
+    logo: images/logo.png
+    df-print: kable
+---
+
+# Introducción.
+
+Igual que en el anterior, pero para obtener las capas recortadas en el formato adecuado.
+
+El objetivo de este documento es:
+
+-   Dar un ejemplo reproducible que puedan modificar a su interés.
+
+-   Producir los archivos de capas climáticas que se usarán para modelar una especie con estas características:
+
+    -   En formato para Maxent (.asc)
+
+    -   Sin multicolinearidad
+    
+    -   Recortadas al área de entrenamiento
+
+-   Mapa descriptivo de lo anterior
+
+
+# Paquetes necesarios {data-background="#700000"}
+
+```{r}
+library(tidyverse)
+library(sf)
+library(tmap)
+library(tmaptools)
+```
+
+
+## Datos raster
+Para datos raster, como los de WorldClim, usamos `terra`. Este paquete reemplaza el paquete `raster` y hacer todo más rápido.
+
+Más info aquí: [terra](<https://rspatial.github.io/terra/>, [Geocomputation with R](https://r.geocompx.org/raster-vector)
+
+```{r}
+library(terra)
+
+```
+
+
+## Obtención de datos Geográficos
+
+El paquete `geodata` proporciona acceso a datos geográficos.
+
+Más info aquí: [geodata](https://cran.r-project.org/web/packages/geodata/index.html)
+
+
+Algunos de los datos que se pueden obtener con este paquete son:
+
+| Function                                                  | Description                                                                                  |
+|:--------------------------|:--------------------------------------------|
+| `cmip6_world`, `cmip6_tile`                               | Downscaled and calibrated CMIP6 projected future climate data                                |
+| `elevation_3s`, `elevation_30s`, `elevation_global`       | Elevation data                                                                               |
+| `gadm`, `world`                                           | Administrative boundaries for any country, or the entire world from [GADM](https://gadm.org) |
+| `landcover`                                               | Landcover data derived from ESA WorldCover                                                   |
+| `soil_world`                                              | Global soils data from [SoilGrids](https://www.isric.org/explore/soilgrids)                  |
+| `worldclim_global`, `worldclim_country`, `worldclim_tile` | [WorldClim](https://worldclim.org) glocal climate data                                       |
+
+
+
+```{r}
+
+library(geodata)
+
+wc <- worldclim_global(var = 'bio', #bioclim
+                 res = 10, # puede ser 10, 5, 2.5, and 0.5 (minutes of a degree)
+                 path = tempdir()) # en la carpeta temporal
+                 
+plot(wc)
+```
+
+
+
+## Pre-procesado de datos
+
+
+### Capas ambientales
+
+La selección de variables ambientales se hace con la función [VIF](https://es.wikipedia.org/wiki/Factor_de_inflaci%C3%B3n_de_la_varianza) presente en el paquete `usdm` (Uncertainty and Sensitivity Analysis for Spatial Models). Este paquete proporciona herramientas para el análisis de incertidumbre y sensibilidad en modelos espaciales.
+
+> Naimi B, Hamm Na, Groen TA, Skidmore AK, Toxopeus AG (2014). "Where is positional uncertainty a problem for species distribution modelling." *Ecography*, **37**, 191-203.  [doi:10.1111/j.1600-0587.2013.00205.x](https://doi.org/10.1111/j.1600-0587.2013.00205.x).
+
+```{r}
+library(usdm)
+```
+
+
+# Recortar capas
+En este ejemplo se usarán países para simplificar todo. Se obtiene de los datos pregargados de R llamados `World` y seleccionaremos los países con registros de _D. virginiana_.
+
+```{r}
+data('World')
+plot(World)
+```
+
+## Cargar datos limpios
+```{r}
+
+sf_occ<- list.files('data', 
+                    full.names = T, pattern = '.csv') %>% #listar todos los archivos csv
+  lapply(., read.csv) %>% # cargarlos
+  bind_rows() %>% # concatenarlos
+   st_as_sf(coords = c('decimalLongitude', 'decimalLatitude'), # hacer espacial
+         crs = 4326)
+  
+  
+```
+
+
+## Búsqueda espacial
+Se usa la función `st_join` que hace una unión espacial y quitamos aquellos polígonos que no fueron unidos a los puntos.
+
+
+```{r}
+training_area <- st_join(World, sf_occ) %>%
+  na.omit() %>%
+  tally() # fusionar
+```
+
+
+```{r}
+plot(training_area)
+```
+
+
+## Cortar las capas raster
+```{r}
+env <- crop(wc, training_area, 
+     mask = T) 
+
+plot(env)
+
+```
+
+# Reducir variables con VIF
+Lo ponemos en una bonita gráfica, cualquier variable mayor a 10 se considera problemática.
+```{r}
+vif(env) %>% ggplot(aes(x= Variables, y = VIF)) + 
+  geom_col() + coord_cartesian(ylim = c(0,10))
+
+```
+ 
+ # Excluir con límite de coeficiente de correlación
+```{r}
+vif_cor <- vifcor(env,th = 0.75,keep = 'wc2.1_10m_bio_1')
+env_cor<- exclude(env, vif_cor) 
+
+plot(env_cor)
+
+```
+ 
+  # Excluir con pasos
+```{r}
+vif_step <- vifstep(env,th = 10,keep = 'wc2.1_10m_bio_1')
+env_step<- exclude(env, vif_step) 
+
+plot(env_step)
+
+```
+# Guardar el resultado
+```{r}
+# guardar un archivo por capa
+writeRaster(env_cor,
+            #guardar por capas
+            filename = paste0('data/env/', 
+                              names(env_cor), # nombrar cada capa
+                              '.tif' ), overwrite =T)
+# guardar un archivo con todas
+writeRaster(env_cor,
+            #guardar por capas
+            filename = 'data/env/test.tif', overwrite =T)
+```
+

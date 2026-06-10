@@ -1,0 +1,106 @@
+To cite package ‘rgbif’ in publications use:
+
+  Chamberlain S, Barve V, Mcglinn D, Oldoni D, Desmet P,
+  Geffert L, Ram K (2025). _rgbif: Interface to the Global
+  Biodiversity Information Facility API_. R package version
+  3.8.1, <https://CRAN.R-project.org/package=rgbif>.
+
+  Chamberlain S, Boettiger C (2017). “R Python, and Ruby
+  clients for GBIF species occurrence data.” _PeerJ
+  PrePrints_.
+  <https://doi.org/10.7287/peerj.preprints.3304v1>.
+
+To see these entries in BibTeX format, use 'print(<citation>,
+bibtex=TRUE)', 'toBibtex(.)', or set
+'options(citation.bibtex.max=999)'.
+To cite package ‘dplyr’ in publications use:
+
+  Wickham H, François R, Henry L, Müller K, Vaughan D (2023).
+  _dplyr: A Grammar of Data Manipulation_. R package version
+  1.1.4, <https://CRAN.R-project.org/package=dplyr>.
+
+A BibTeX entry for LaTeX users is
+
+  @Manual{,
+    title = {dplyr: A Grammar of Data Manipulation},
+    author = {Hadley Wickham and Romain François and Lionel Henry and Kirill Müller and Davis Vaughan},
+    year = {2023},
+    note = {R package version 1.1.4},
+    url = {https://CRAN.R-project.org/package=dplyr},
+  }
+To cite package ‘CoordinateCleaner’ in publications use:
+
+  Zizka A, Silvestro D, Andermann T, Azevedo J, Duarte Ritter
+  C, Edler D, Farooq H, Herdean A, Ariza M, Scharn R,
+  Svanteson S, Wengstrom N, Zizka V, Antonelli A (2019).
+  “CoordinateCleaner: standardized cleaning of occurrence
+  records from biological collection databases.” _Methods in
+  Ecology and Evolution_, -7. doi:10.1111/2041-210X.13152
+  <https://doi.org/10.1111/2041-210X.13152>, R package version
+  3.0.1, <https://github.com/ropensci/CoordinateCleaner>.
+
+A BibTeX entry for LaTeX users is
+
+  @Article{,
+    title = {CoordinateCleaner: standardized cleaning of occurrence records from biological collection databases},
+    author = {Alexander Zizka and Daniele Silvestro and Tobias Andermann and Josue Azevedo and Camila {Duarte Ritter} and Daniel Edler and Harith Farooq and Andrei Herdean and Maria Ariza and Ruud Scharn and Sten Svanteson and Niklas Wengstrom and Vera Zizka and Alexandre Antonelli},
+    journal = {Methods in Ecology and Evolution},
+    number = {10},
+    pages = {-7},
+    year = {2019},
+    note = {R package version 3.0.1},
+    doi = {10.1111/2041-210X.13152},
+    url = {https://github.com/ropensci/CoordinateCleaner},
+  }
+To cite package ‘terra’ in publications use:
+
+  Hijmans R (2024). _terra: Spatial Data Analysis_. R package
+  version 1.7-78, <https://CRAN.R-project.org/package=terra>.
+
+A BibTeX entry for LaTeX users is
+
+  @Manual{,
+    title = {terra: Spatial Data Analysis},
+    author = {Robert J. Hijmans},
+    year = {2024},
+    note = {R package version 1.7-78},
+    url = {https://CRAN.R-project.org/package=terra},
+  }
+To cite SDMtune in publications please use:
+
+  Vignali, S., Barras, A. G., Arlettaz, R., Braunisch, V.
+  (2022). SDMtune: An R package to tune and evaluate species
+  distribution models. Ecology and Evololution, 10(20),
+  11488–11506. https://doi.org/10.1002/ece3.6786
+
+A BibTeX entry for LaTeX users is
+
+  @Article{,
+    title = {SDMtune: An R package to tune and evaluate species distribution models},
+    author = {{Sergio Vignali} and {Arnaud G. Barras} and {Raphaël Arlettaz} and {Veronika Braunisch}},
+    journal = {Ecology and Evolution},
+    year = {2020},
+    volume = {10},
+    number = {20},
+    pages = {11488–11506},
+    doi = {10.1002/ece3.6786},
+  }
+To cite package ‘geodata’ in publications use:
+
+  Hijmans RJ, Barbosa M, Ghosh A, Mandel A (2024). _geodata:
+  Download Geographic Data_. R package version 0.6-2,
+  <https://CRAN.R-project.org/package=geodata>.
+
+A BibTeX entry for LaTeX users is
+
+  @Manual{,
+    title = {geodata: Download Geographic Data},
+    author = {Robert J. Hijmans and Márcia Barbosa and Aniruddha Ghosh and Alex Mandel},
+    year = {2024},
+    note = {R package version 0.6-2},
+    url = {https://CRAN.R-project.org/package=geodata},
+  }
+
+ATTENTION: This citation information has been auto-generated
+from the package DESCRIPTION file and may need manual editing,
+see ‘help("citation")’.

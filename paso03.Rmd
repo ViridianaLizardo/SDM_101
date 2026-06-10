@@ -1,0 +1,441 @@
+---
+title: "Paso 3: Modelando distribuciones con SDMTune"
+author: "M.en C. Viridiana Lizardo"
+date: "6 de agosto de 2024"
+output: 
+  html_notebook:
+    toc: TRUE
+    highlight: pygments
+    logo: images/logo.png
+    df-print: kable
+---
+
+# Introducción a Maxent
+
+MaxEnt, abreviación de Maxima Entropía, es un método popular para modelar nichos y distribuciones. Su popularidad se origina de:
+
+-   Funciona bien con datos de sólo presencia.
+
+-   Genera datos de idoneidad
+
+-   Es familiar para múltiples personas.
+
+## Conceptos clave
+
+-   **Sólo presencia:** No requiere datos de ausencia, genera "pseudo ausencias" a partir del espacio disponible en el área de entrenamiento.
+-   **Pseudo-ausencias**: Puntos generados artificialmente donde no se ha registrado la especie. Proveen un contraste para mejorar la precisión del modelo.
+-   **Área de entrenamiento:** Total de datos a partir de los cuales hará inferencias. Usualmente es equivalente a la M, pero puede no serlo. Tambien llamado *background*.
+-   **Regularización:** Método para evitar el sobreajuste ajustando la complejidad del modelo. Se modifica con la tasa de regularización (se da por el regularization multiplier).
+-   **AUC (Area Under the Curve):** Métrica por default que mide la capacidad del modelo para distinguir entre presencias y ausencias. Va de 0.5 (azar) a 1 (perfecta discriminación).
+-   **Idoneidad:** Mapas que muestran la probabilidad o idoneidad de presencia de una especie en diferentes áreas geográficas. Resultado del Maxent.
+-   **Validación cruzada:** Técnica de validación que divide los datos en subconjuntos para entrenar y evaluar el modelo varias veces. Estimar la precisión del modelo y su capacidad de generalización.
+
+#Construyendo el Modelo
+
+## Features de Maxent
+
+En Maxent, las "features" (características) son funciones matemáticas que transforman las variables ambientales de entrada en el modelo. El default es ponerlas todas, que se expresa como "lpqh".
+
+### Linear (l)
+
+Relaciona la variable ambiental de forma directa y proporcional.
+
+**Función:** $f(x) = x$
+
+```{r echo=FALSE, fig.align='center', fig.height=4, fig.width=4}
+
+x <- seq(0, 10, length.out = 100)
+y <- x
+plot(x, y, type="l", col="blue", main="Linear Feature", xlab="Variable ambiental", ylab="Idoneidad")
+
+
+```
+
+### Product Feature (p)
+
+Modela interacciones multiplicativas entre variables.
+
+**Función:** $f(x, y) = x \cdot y$
+
+```{r echo=FALSE, fig.align='center', fig.height=4, fig.width=4}
+x <- seq(0, 10, length.out = 100)
+y <- seq(0, 10, length.out = 100)
+z <- outer(x, y, "*")
+persp(x, y, z, theta = 30, phi = 30, col = "green", main="Product Feature", xlab="Variable ambiental X", ylab="Variable ambiental Y", zlab="Idoneidad")
+
+```
+
+### Quadratic Feature (q)
+
+Incluye términos cuadráticos de la variable ambiental.
+
+**Función:** $f(x) = x^2$
+
+```{r echo=FALSE, fig.align='center', fig.height=4, fig.width=4}
+x <- seq(-5, 5, length.out = 100)
+y <- x^2
+plot(x, y, type="l", col="red", main="Quadratic Feature", xlab="Variable ambiental", ylab="Idoneidad")
+
+```
+
+### Hinge Feature (HF)
+
+Permite cambios abruptos en la pendiente de la función.
+
+**Función:** $f(x) = max(0, x - \text{threshold})$
+
+```{r echo=FALSE, fig.align='center', fig.height=4, fig.width=4}
+threshold <- 5
+x <- seq(0, 10, length.out = 100)
+y <- pmax(0, x - threshold)
+plot(x, y, type="l", col="purple", main="Hinge Feature", xlab="Variable ambiental", ylab="Idoneidad")
+
+```
+
+### Threshold Feature (t)
+
+Actúa como un umbral binario.
+
+**Función:** $f(x) = I(x > \text{threshold})$
+
+```{r echo=FALSE, fig.align='center', fig.height=4, fig.width=4}
+threshold <- 5
+x <- seq(0, 10, length.out = 100)
+y <- as.numeric(x > threshold)
+plot(x, y, type="l", col="orange", main="Threshold Feature", xlab="Variable ambiental", ylab="Idoneidad")
+
+
+
+```
+
+## Regularization multiplier
+
+La regularización en MaxEnt previene el sobreajuste del modelo y penaliza modelos que son demasiado complicados. Usa el parámetro de regularización(regularization o beta multiplier):
+
+-   **Valores bajos de regularización** (por ejemplo, 0.5) permiten que el modelo sea más complejo y se ajuste más estrechamente a los datos de entrenamiento, llevando a un sobreajuste..
+-   **Valores altos de regularización** (por ejemplo, 2 o más) simplifican el modelo. El modelo puede no capturar relaciones importantes en los datos, llevando a un subajuste.
+-   **Default:** 1
+
+##
+```{r echo=FALSE, fig.align='center', fig.height=4, fig.width=12, message=FALSE, warning=FALSE}
+# Cargar librerías necesarias
+library(dismo)
+library(terra)
+
+# Simulación de datos de presencia y variables ambientales
+set.seed(123)
+presencias <- data.frame(x = runif(50, -100, 100), y = runif(50, -100, 100))
+variables <- rast(nrows=100, ncols=100, xmin=-100, xmax=100, ymin=-100, ymax=100)
+values(variables) <- runif(ncell(variables), 0, 1)
+
+# Crear modelos MaxEnt con diferentes tasas de regularización
+modelo_bajo <- maxent(stack(variables), presencias, args=c("betamultiplier=0.25"))
+modelo_adecuado <- maxent(stack(variables), presencias, args=c("betamultiplier=1"))
+modelo_alto <- maxent(stack(variables), presencias, args=c("betamultiplier=3"))
+
+# Predicciones
+pred_bajo <- predict(modelo_bajo, variables)
+pred_adecuado <- predict(modelo_adecuado, variables)
+pred_alto <- predict(modelo_alto, variables)
+
+# Graficar resultados
+par(mfrow=c(1, 3))
+plot(pred_bajo, main="Regularización Baja (0.25)")
+plot(pred_adecuado, main="Regularización por default (1)")
+plot(pred_alto, main="Regularización Alta (3)")
+
+
+```
+
+# Evaluación de Modelos MaxEnt usando Validación Cruzada
+
+Esta evaluación permite determinar qué tan bien el modelo predice la presencia de especies en nuevas ubicaciones y condiciones. Se usa la validación cruzada que estima el rendimiento del modelo comparando errores a partir de un set de datos no usado para crear el modelo ('testing').
+
+## Sensibilidad
+
+Proporción de verdaderos positivos detectados por el modelo, calculada como $Sensibilidad = \frac{TP}{TP + FN}$.
+
+Mide la capacidad del modelo para identificar correctamente las presencias de la especie.
+
+## Especificidad
+
+Proporción de verdaderos negativos detectados por el modelo, calculada como $Especificidad = \frac{TN}{TN + FP}$.
+
+Mide la capacidad del modelo para identificar correctamente las ausencias de la especie.
+
+## Omisión
+
+Error que ocurre cuando el modelo no predice una presencia conocida (**falso negativo**).
+
+## Comisión
+
+Error que ocurre cuando el modelo predice una presencia en una ubicación donde la especie no está presente (**falso positivo**).
+
+## Tabla de Confusión
+
+Matriz que resume el rendimiento de un modelo de clasificación mostrando los recuentos de verdaderos positivos (TP), verdaderos negativos (TN), falsos positivos (FP) y falsos negativos (FN).
+
+Permite calcular métricas de evaluación como sensibilidad, especificidad, precisión, y TSS.
+
+```{r echo=FALSE, fig.align='center', fig.height=5, fig.width=6, message=FALSE, warning=FALSE}
+# Cargar librerías necesarias
+library(ggplot2)
+
+# Definir una matriz de confusión vacía con etiquetas
+confusion_matrix <- data.frame(
+  Observed = factor(rep(c("Presencia", "Ausencia"), each=2), levels=c("Presencia", "Ausencia")),
+  Predicted = factor(rep(c("Presencia", "Ausencia"), 2), levels=c("Presencia", "Ausencia"))) %>%
+  mutate(Resultado = if_else(Observed == Predicted, 'Cierto', 'Falso'))
+
+
+# Crear el diagrama de la matriz de confusión usando ggplot2
+ggplot(data = confusion_matrix, aes(x = Observed, y = Predicted)) +
+  geom_tile(aes(fill = Resultado), color = "white") +
+  geom_text(aes(label = c("Verdadero Positivo\nSensibilidad", "Falso Negativo\n Omisión",
+                          "Falso Positivo\nComisión", "Verdadero Negativo\nEspecificidad")), vjust = 1) +
+  labs(title = "Matriz de Confusión", x = "Observado", y = "Predicho") +
+  theme_minimal() + coord_cartesian(expand = F) +
+  theme(axis.text.y = element_text(angle = 90))
+
+```
+
+# Indices
+
+## True Skill Statistic (TSS)
+
+El True Skill Statistic (TSS) es una métrica que combina la sensibilidad (tasa de verdaderos positivos) y la especificidad (tasa de verdaderos negativos). Se calcula como:
+
+$$ TSS = Sensibilidad + Especificidad - 1 $$
+
+**Valores:** Un TSS de 1 indica una predicción perfecta, mientras que un TSS de 0 indica una predicción no mejor que el azar.
+
+**Desventajas:** Depende del Umbral de decisión seleccionado para clasificar las predicciones en positivas y negativas.
+
+## Área Bajo la Curva (AUC)
+
+Es el default que da Maxent, muchos revisores lo **aborrecen** por evaluar generalmente los modelos como buenos. El Área Bajo la Curva (AUC) se refiere al área bajo la curva ROC (Receiver Operating Characteristic). La curva ROC muestra la relación entre la tasa de verdaderos positivos (sensibilidad) y la tasa de falsos positivos (1 - especificidad).
+
+**Valores:** Un AUC = 1 es una predicción perfecta. AUC \> 0.5 indica una predicción buena, AUC \< 0.5 es una predicción no mejor que el azar.
+
+**Ventajas:** AUC proporciona una medida del rendimiento del modelo independiente del umbral de decisión.
+
+**Desventajas:** AUC puede ser menos informativa en casos de clases muy desbalanceadas. **Nadie la quiere** desde la crítica de [Lobo (2008.)](http://doi.wiley.com/10.1111/j.1466-8238.2007.00358.x) Aunque una revisión reciente la defiende [(Konowalik & Nosol, 2021)](https://www.nature.com/articles/s41598-020-80062-1).
+
+## Área Bajo la Curva Parcial (pAUC)
+
+Variante del AUC que se calcula solo para una parte específica de la curva ROC propuesta por [Peterson et al. (2008)](http://linkinghub.elsevier.com/retrieve/pii/S0304380007006163). Evalua el rendimiento del modelo en regiones específicas de la curva ROC dónde de la tasa de falsos positivos o la tasa de verdaderos positivos son más relevantes.
+
+**Valores:** de 0 hasta aproximadamente 2. Un pAUC \< 1 es una predicción peor que el azar. un valor de pAUC \> 1 indica una predicción mejor que el azar. Entre más alto el valor, mejor el modelo.
+
+**Ventajas:** Facilita la comparación entre modelos en la región de interés, lo que puede ser crucial en aplicaciones como la detección de fraudes, diagnóstico médico, y otras áreas donde los costos de errores varían según el umbral.
+
+**Desventajas:** Requiere definir la región de interés. Es muy tardada de calcular.
+
+## Resumen Comparativo
+
+| Métrica  | Ventajas                                                                                                              | Desventajas                                                                   |
+|---------------------|-----------------------|----------------------------|
+| **TSS**  | \- Balancea sensibilidad y especificidad<br>- Interpretación directa                                                  | \- Dependencia del umbral<br>- No considera la distribución de la prevalencia |
+| **AUC**  | \- Independencia del umbral<br>- Facilita la comparación entre modelos<br>- Captura rendimiento en todos los umbrales | \- Nadie la acepta                                                            |
+| **pAUC** | \- Focalización en regiones de interés<br>- La favorita de Peterson et al.                                            | \- Menor información global<br>- Tarda años en calcularse.                    |
+
+# SDMTune
+
+SDMtune es un paquete de R diseñado para facilitar la creación, evaluación y optimización de modelos de distribución de especies. Creado por Sergio Vignali, de la universidad de Bern.
+
+Varios manuales y explicación a las funciones están en el [Sitio oficial](https://consbiol-unibern.github.io/SDMtune/). También pueden ver la [publicación.](https://onlinelibrary.wiley.com/doi/full/10.1002/ece3.6786?af=R)
+
+## Características Principales
+
+-   **Funciones Clave:**
+
+    -   Preprocesamiento de datos: separación de datos, obtención del background, visualización.
+    -   Entrenamiento de modelos: directamente con maxent, especificación de features, regularización, etc.
+    -   Selección de variables: basada en datos.
+    -   Evaluación de modelos: varios índices.
+    -   Optimización de modelos: Experimentos.
+    
+
+
+## Ejercicio
+
+### Cargar paquetes
+```{r}
+library(SDMtune)
+library(terra)
+library(sf)
+```
+
+
+### Cargar datos
+```{r}
+library(tidyverse)
+library(terra)
+predictors <- list.files('data/env', pattern = '.tif',
+                       full.names = T) %>% rast()
+
+presences <- list.files('data/', pattern = '.csv',
+                       full.names = T) %>% # en este caso vamos a juntarlos sets
+  lapply(read.csv) %>% bind_rows()
+
+```
+
+Para usar este paquete, necesitamos los puntos del background para hacer pseudo ausencias. Eso lo vamos a hacer extrayendo puntos aleatorios de las capas **recortadas**.
+
+## Crear background
+```{r}
+# puntos aleatorios
+
+num_puntos <- 1000  # Número de puntos aleatorios deseados
+
+bg <- as.data.frame(predictors$wc2.1_10m_bio_1, xy = TRUE, na.rm = T)  %>%
+  sample_n(num_puntos) %>% dplyr::select(x,y)
+
+```
+## Preparar SWD
+Un objeto **SWD** (Species with Data) es una estructura de datos diseñada para almacenar y manejar datos utilizados en la modelización de distribución de especies. Contiene datos de presencia, pseudo-ausencia (o background), y las variables ambientales asociadas.
+
+```{r}
+SWD_data <- prepareSWD(species = 'Didelphis virginiana',
+           env = predictors,p = presences[,2:3], a = bg)
+
+SWD_data
+```
+## Separar en training, validation y testing
+```{r}
+datasets <- trainValTest(SWD_data,
+                         test = 0.2,
+                         only_presence = TRUE)
+train <- datasets[[1]]
+test <- datasets[[2]]
+```
+
+## Creación de Modelos
+- **Modelos Disponibles:**
+  - Maxent
+  - Random Forest
+  - Support Vector Machine
+  - Gradient Boosting
+  
+```{r}
+default_model <- train(method = 'Maxent',
+                       data = train, 
+                       reg = 1,
+                       fc = 'lpqh',
+                       iter = 500)
+```
+
+
+# Evaluación de Modelos
+
+## AUC (Area Under the Curve)
+
+```{r}
+auc(default_model, test = test)
+```
+**pROC**
+```{r}
+plotROC(default_model, test = test)
+```
+
+## TSS (True Skill Statistic)
+
+```{r}
+tss(default_model, test = test)
+```
+
+
+## Optimización de Hiperparámetros
+Se puede realizar con diferentes funciones. Aquí hacemos el ejemplo con optimizeModel` que usa un algoritmo genético para encontrar una solución cercana a la óptima. 
+
+**Aquí estan las otras opciones**
+
+| Función          | Ventajas                                     | Desventajas                                      |
+  |------------------|----------------------------------------------|--------------------------------------------------|
+  | `optimizeModel`  | Flexible, personalizable, automatizada       | Puede ser computacionalmente costosa             |
+  | `randomSearch`   | Eficiente, simple                            | No exhaustiva, depende de la definición del espacio |
+  | `gridSearch`     | Exhaustiva, determinística                   | Muy costosa computacionalmente, puede ser ineficiente |
+  | `randomFolds`    | Evaluación robusta, mitigación del sobreajuste | Resultados variables, complejidad adicional      |
+  
+
+##
+```{r}
+# Definir el espacio de búsqueda para los hiperparámetros
+hparams <- list(reg = seq(0.5, 3, 0.5),
+          fc = c("l", "lq", "lh", "lp", "lqp", "lqph"))
+
+# Optimizar el modelo
+modelo_optimizado <- optimizeModel(default_model,
+                                   hypers = hparams, 
+                                   metric = "aicc", 
+                                   env = predictors,
+                                   test = test, pop = 10,
+                                   gen = 2, seed = 123)
+
+```
+## Resultado del Tuneado
+Vemos la tabla de datos resultantes, se selecciona el modelo con menor valor de delta_AICc
+```{r}
+modelo_optimizado@results %>%
+  distinct() # para evitar mostrar valores duplicados
+
+selected_model <- modelo_optimizado@models[[1]]
+```
+```{r}
+auc(selected_model, test = test)
+tss(selected_model, test = test)
+```
+
+
+# Visualización de Resultados
+
+## Crear Mapas de Predicción
+```{r}
+pred <- predict(selected_model,
+                data = env, # capas raster de input
+                type = "cloglog")
+plot(pred)
+```
+## Graficar la importancia de las variables
+```{r}
+varImp(selected_model) %>% plotVarImp(color = 'purple')
+```
+## Selección de umbral (threshold) para crear un Mapa binario
+
+Encontrar un valor de umbral para transformar las predicciones continuas de un modelo de distribución de especies en valores binarios (presencia/ausencia).
+
+```{r}
+umbrales <- thresholds(selected_model)
+
+umbrales
+```
+
+##
+| **Criterio**                  | **MTP**                                      | **EqualSensSpec**                         | **MaxSensSpec**                         |
+  |-------------------------------|----------------------------------------------|-------------------------------------------|-----------------------------------------|
+  | **Descripción**               | Umbral mínimo que clasifica todas las presencias | Sensibilidad igual a especificidad        | Maximiza la suma de sensibilidad y especificidad |
+  | **Ventajas**                  | Asegura detección de todas las presencias    | Equilibrio exacto entre sensibilidad y especificidad | Balance óptimo entre presencias y ausencias |
+  | **Desventajas**               | Alto riesgo de falsos positivos             | Compromiso entre detectar presencias y evitar falsos positivos | Potencial sesgo si la prevalencia es extrema |
+  | **Aplicación Ideal**          | Situaciones donde es crítico no omitir ninguna presencia | Necesidad de balance exacto entre detectar presencias y evitar falsos positivos | Necesidad de optimización global en discriminación |
+
+
+Aquí usaremos _Maximum training sensitivity plus specificity_ para transformar a binario. Esto se hace con una reclasificación de los valores del mapa `pred` 
+```{r}
+ths_val <- umbrales %>%
+  filter(Threshold =='Equal training sensitivity and specificity') %>%
+  pull(2) # jalamos el valor de la columna 2
+
+m <- matrix(c(0,ths_val, 0, ths_val, 1, 1), nrow = 2, byrow = T)
+
+pred_binario <- classify(pred, rcl = m) 
+
+plot(pred_binario)
+```
+# Guardar resultado
+
+```{r}
+writeRaster(pred, filename = 'predicted.tiff')
+writeRaster(pred_binario, filename = 'binary.tiff')
+```
+
+

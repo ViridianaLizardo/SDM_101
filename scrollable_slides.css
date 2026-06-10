@@ -1,0 +1,9 @@
+slides > slide {
+  overflow-y: auto !important;
+}
+.title-slide hgroup h1 {
+  font-size: 50px;
+  letter-spacing: 0;
+  color:#700000;
+}
+
