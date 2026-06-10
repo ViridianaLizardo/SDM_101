@@ -67,8 +67,8 @@ GBIF_EMAIL = "tu_correo@ejemplo.com"
 ├── paso01.Rmd          # Notebook: datos de presencia
 ├── paso02.Rmd          # Notebook: variables climáticas
 ├── paso03.Rmd          # Notebook: modelado con MaxEnt
-├── slides/             # Versiones en presentación de cada paso
-│   ├── intro.pptx
+├── docs/             # Versiones en presentación de cada paso
+│   ├── introduccion.pdf
 │   ├── paso01_slides.Rmd
 │   └── ...
 ├── data/               # Generada al correr los scripts
@@ -78,16 +78,17 @@ GBIF_EMAIL = "tu_correo@ejemplo.com"
 └── images/             # Imágenes usadas en los notebooks
 ```
 
-> **Nota:** Las carpetas `data/` y `layers/` se generan al ejecutar los notebooks. No están incluidas en el repositorio por su tamaño.
+> **Nota:** Las carpetas `data/` y `layers/` se generan al ejecutar los notebooks. Están incluidas en el repositorio en caso de que haya problemas de hardware o internet.
 
 ---
 
 ## Cómo usar este curso
 
 1. Clona o descarga el repositorio.
-2. Abre los archivos `.Rmd` en RStudio en orden (paso01 → paso02 → paso03).
-3. Ejecuta los chunks secuencialmente. Cada notebook genera los archivos que necesita el siguiente.
-4. Puedes cambiar la especie objetivo modificando el nombre científico en el Paso 01; el resto del flujo es compatible con cualquier especie en GBIF.
+2. Abre el proyecto `.Rproj` en RStudio.
+3. Abre los archivos `.Rmd` en RStudio en orden (paso01 → paso02 → paso03).
+4. Ejecuta los chunks secuencialmente. Cada notebook genera los archivos que necesita el siguiente.
+5. Puedes cambiar la especie objetivo modificando el nombre científico en el Paso 01; el resto del flujo es compatible con cualquier especie en GBIF.
 
 ---
 
