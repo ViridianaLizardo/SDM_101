@@ -75,16 +75,39 @@
       margin-bottom: 1.4rem;
     }
 
+    /* Logo en pixel art (mismo estilo que el escarabajo del sitio) */
     .logo {
-      height: 64px;
-      width: auto;
+      width: 78px;
+      height: 102px;
       flex-shrink: 0;
+      overflow: visible;
+    }
+    .logo .d { fill: var(--ink); }
+    .logo .b { fill: var(--acc); }
+    .logo .h { fill: var(--pop); }
+    .logo .w { fill: var(--paper); }
+    .logo .s { fill: var(--soft); }
+    .logo .pin { animation: brinca .9s steps(2, end) infinite; }
+    @keyframes brinca { 50% { transform: translateY(-1px); } }
+
+    /* Botón de modo (igual que .boton-modo del sitio) */
+    .boton-modo {
+      margin-left: auto;
+      align-self: flex-start;
+      min-height: 44px;
+      padding: 8px 18px;
+      font-family: var(--px);
+      font-size: 16px;
+      color: var(--ink);
       background: var(--paper);
       border: 2px solid var(--line);
-      border-radius: 14px;
+      border-radius: 999px;
       box-shadow: 3px 3px 0 var(--line);
-      padding: 6px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: transform .08s, box-shadow .08s;
     }
+    .boton-modo:hover { transform: translate(-2px, -2px); box-shadow: 5px 5px 0 var(--line); }
 
     .eyebrow {
       display: inline-block;
@@ -296,6 +319,7 @@
     /* ── MOBILE ── */
     @media (max-width: 600px) {
       .header-top { flex-direction: column; align-items: flex-start; gap: 0.8rem; }
+      .boton-modo { margin-left: 0; order: -1; align-self: flex-end; }
       .step { grid-template-columns: 1fr; gap: 0.6rem; padding: 1.2rem; }
       .step-links { flex-direction: row; align-items: center; }
       .req-grid { grid-template-columns: 1fr; }
@@ -309,11 +333,12 @@
 
 <header>
   <div class="header-top">
-    <img src="../images/logo.png" alt="Logo" class="logo">
+    <svg class="logo" viewBox="0 0 13 17" shape-rendering="crispEdges" role="img" aria-label="Logo SDM 101"><rect class="s" x="3" y="16" width="7" height="1"/><g class="pin"><rect class="d" x="4" y="0" width="5" height="1"/><rect class="d" x="2" y="1" width="2" height="1"/><rect class="b" x="4" y="1" width="5" height="1"/><rect class="d" x="9" y="1" width="2" height="1"/><rect class="d" x="1" y="2" width="1" height="1"/><rect class="b" x="2" y="2" width="1" height="1"/><rect class="w" x="3" y="2" width="1" height="1"/><rect class="b" x="4" y="2" width="7" height="1"/><rect class="d" x="11" y="2" width="1" height="1"/><rect class="d" x="1" y="3" width="1" height="1"/><rect class="w" x="2" y="3" width="1" height="1"/><rect class="b" x="3" y="3" width="2" height="1"/><rect class="h" x="5" y="3" width="3" height="1"/><rect class="b" x="8" y="3" width="3" height="1"/><rect class="d" x="11" y="3" width="1" height="1"/><rect class="d" x="0" y="4" width="1" height="1"/><rect class="b" x="1" y="4" width="3" height="1"/><rect class="h" x="4" y="4" width="5" height="1"/><rect class="b" x="9" y="4" width="3" height="1"/><rect class="d" x="12" y="4" width="1" height="1"/><rect class="d" x="0" y="5" width="1" height="1"/><rect class="b" x="1" y="5" width="2" height="1"/><rect class="h" x="3" y="5" width="1" height="1"/><rect class="d" x="4" y="5" width="1" height="1"/><rect class="h" x="5" y="5" width="3" height="1"/><rect class="d" x="8" y="5" width="1" height="1"/><rect class="h" x="9" y="5" width="1" height="1"/><rect class="b" x="10" y="5" width="2" height="1"/><rect class="d" x="12" y="5" width="1" height="1"/><rect class="d" x="0" y="6" width="1" height="1"/><rect class="b" x="1" y="6" width="2" height="1"/><rect class="h" x="3" y="6" width="7" height="1"/><rect class="b" x="10" y="6" width="2" height="1"/><rect class="d" x="12" y="6" width="1" height="1"/><rect class="d" x="0" y="7" width="1" height="1"/><rect class="b" x="1" y="7" width="3" height="1"/><rect class="h" x="4" y="7" width="2" height="1"/><rect class="d" x="6" y="7" width="1" height="1"/><rect class="h" x="7" y="7" width="2" height="1"/><rect class="b" x="9" y="7" width="3" height="1"/><rect class="d" x="12" y="7" width="1" height="1"/><rect class="d" x="1" y="8" width="1" height="1"/><rect class="b" x="2" y="8" width="3" height="1"/><rect class="h" x="5" y="8" width="3" height="1"/><rect class="b" x="8" y="8" width="3" height="1"/><rect class="d" x="11" y="8" width="1" height="1"/><rect class="d" x="1" y="9" width="1" height="1"/><rect class="b" x="2" y="9" width="9" height="1"/><rect class="d" x="11" y="9" width="1" height="1"/><rect class="d" x="2" y="10" width="1" height="1"/><rect class="b" x="3" y="10" width="7" height="1"/><rect class="d" x="10" y="10" width="1" height="1"/><rect class="d" x="3" y="11" width="1" height="1"/><rect class="b" x="4" y="11" width="5" height="1"/><rect class="d" x="9" y="11" width="1" height="1"/><rect class="d" x="4" y="12" width="1" height="1"/><rect class="b" x="5" y="12" width="3" height="1"/><rect class="d" x="8" y="12" width="1" height="1"/><rect class="d" x="5" y="13" width="1" height="1"/><rect class="b" x="6" y="13" width="1" height="1"/><rect class="d" x="7" y="13" width="1" height="1"/><rect class="d" x="6" y="14" width="1" height="1"/></g></svg>
     <div>
       <p class="eyebrow">SDM_101 &nbsp;·&nbsp; Curso en R</p>
       <h1>Modelado de <span>Distribución</span><br>de Especies</h1>
     </div>
+    <button class="boton-modo" type="button" id="boton-modo">☾ modo oscuro</button>
   </div>
   <p class="subtitle">
     De los registros de presencia en GBIF a un mapa de idoneidad con MaxEnt,
@@ -416,6 +441,26 @@
   <span>Dra. Viridiana Lizardo · MIT License</span>
   <a href="https://github.com/ViridianaLizardo/SDM_101">Ver repositorio en GitHub ↗</a>
 </footer>
+
+<script>
+  // Botón claro / oscuro (mismo comportamiento que viridianalizardo.github.io)
+  (function () {
+    var raiz = document.documentElement;
+    var boton = document.getElementById("boton-modo");
+    function pintar() {
+      var oscuro = raiz.getAttribute("data-modo") === "oscuro";
+      boton.textContent = oscuro ? "☼ modo claro" : "☾ modo oscuro";
+      boton.setAttribute("aria-pressed", oscuro ? "true" : "false");
+    }
+    boton.addEventListener("click", function () {
+      var nuevo = raiz.getAttribute("data-modo") === "oscuro" ? "claro" : "oscuro";
+      raiz.setAttribute("data-modo", nuevo);
+      try { localStorage.setItem("modo", nuevo); } catch (e) {}
+      pintar();
+    });
+    pintar();
+  })();
+</script>
 
 </body>
 </html>
